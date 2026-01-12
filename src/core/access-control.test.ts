@@ -16,12 +16,10 @@ describe("access-control", () => {
         expect(access.resources).toEqual(resources);
     });
 
-    it("should allow permission assignment", () => {
-        access.allow("admin", "*");
-        access.allow("user", "post:read");
-
-        expect(access.getRolePermissions("admin")).toContain("*");
-        expect(access.getRolePermissions("user")).toContain("post:read");
+    it("should allow multiple permission assignment to a single role", () => {
+        access.allow("user", ["post:create", "user:read"]);
+        expect(access.getRolePermissions("user")).toContain("post:create");
+        expect(access.getRolePermissions("user")).toContain("user:read");
     });
 
     it("should correctly check permissions with 'can'", () => {

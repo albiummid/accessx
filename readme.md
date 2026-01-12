@@ -192,54 +192,13 @@ Frontend
 access.useCan(permissions, permission)
 <access.Can />
 
-🆚 Comparison with Keycloak
-
-This package is an application-level authorization engine, not a full IAM system.
-
-Area	@accessx/core	Keycloak
-Identity	❌	✅
-RBAC Core	✅	✅
-Type Safety	✅	❌
-Frontend Hooks	✅	❌
-Performance	✅	❌
-Admin UI	❌	✅
-Multi-App SSO	❌	✅
-Runtime Policy Change	❌	✅
-Enterprise Compliance	❌	✅
-Ops Overhead	Low	High
-Strengths
-
-Excellent developer experience (TypeScript-first)
-
-Frontend hooks and React components
-
-High performance and low latency
-
-Embedded, framework-agnostic, zero ops
-
-Weaknesses Compared to Keycloak
-
-No identity or login management
-
-No multi-application SSO
-
-No admin UI or delegation
-
-Permissions mostly static (redeploy needed for new resources/actions)
-
-No ABAC / advanced policy language
-
-No enterprise audit / compliance tooling
-
-Ideal Usage
-Keycloak (Authentication + Identity)
-        ↓
-JWT / Claims
-        ↓
-@accessx/core (Authorization + UI permissions)
+🔐 Multi-Permission Assignment
+Assign multiple permissions to a role at once:
+```typescript
+access.allow("EDITOR", ["BLOGS:CREATE", "BLOGS:READ", "BLOGS:UPDATE"]);
+```
 
 
-This is complementary, not a replacement for Keycloak.
 
 🏆 Why Use @accessx/core?
 
@@ -288,17 +247,10 @@ npm test
 
 ## 🛣️ Roadmap
 
-Wildcard permissions (BLOGS:*)
-
-Multi-role users
-
-Attribute-based access control (ABAC)
-
-Permission groups
-
-JWT permission compression
-
-CLI generator
+- [ ] Multi-role users
+- [ ] Permission groups
+- [ ] JWT permission compression
+- [ ] CLI generator
 
 📄 License
 
