@@ -1,59 +1,74 @@
 import { createAccess } from "../src/core/access-control";
+import { Resource } from "../src/types";
 
-describe("ABAC - Attribute Based Access Control", () => {
-    // Define config matching usage
-    const config = {
-        roles: ["user", "admin"] as const,
-        actions: ["UPDATE", "DELETE"] as const,
-        resources: [{ name: "Post", key: "POST" }] as const,
-    };
+describe("ABAC (Attribute-Based Access Control)", () => {
+    const roles = ["admin", "user"] as const;
+    const actions = ["create", "read", "update", "delete"] as const;
+    const resources: Resource[] = [
+        { name: "Post", key: "post", description: "Blog posts" },
+    ];
 
-    it("should grant permission based on ownership (context)", () => {
-        const access = createAccess(config);
+    const access = createAccess({ roles, actions, resources });
 
-        access.allow("user", "POST:UPDATE", (context) => {
-            return context.userId === context.postAuthorId;
-        });
+    interface Post {
+        id: string;
+        authorId: string;
+        title: string;
+    }
 
-        const blog = { id: 1, authorId: 100 };
-        const user = { id: 100 };
+    interface User {
+        id: string;
+        name: string;
+    }
 
+    it("should handle conditional permissions", () => {
+        // Define ABAC rule: user can only update their own post
+        access.allow(
+            "user",
+            "post:update",
+            (context: { user: User; post: Post }) => {
+                return context.post.authorId === context.user.id;
+            },
+        );
+
+        const user1 = { id: "u1", name: "Alice" };
+        const user2 = { id: "u2", name: "Bob" };
+        const post1 = { id: "p1", authorId: "u1", title: "Alice's Post" };
+
+        // Alice can update her own post
         expect(
-            access.can("user", "POST:UPDATE", {
-                userId: user.id,
-                postAuthorId: blog.authorId,
-            })
+            access.can("user", "post:update", { user: user1, post: post1 }),
         ).toBe(true);
 
+        // Bob cannot update Alice's post
         expect(
-            access.can("user", "POST:UPDATE", {
-                userId: 999,
-                postAuthorId: blog.authorId,
-            })
+            access.can("user", "post:update", { user: user2, post: post1 }),
         ).toBe(false);
     });
 
-    it("should work with global wildcards and conditions", () => {
-        const access = createAccess(config);
-        access.allow("admin", "*", (context) => context.isAdmin);
+    it("should handle global wildcards with conditions", () => {
+        access.allow("admin", "*", (context: { secret: string }) => {
+            return context.secret === "magic";
+        });
 
-        expect(access.can("admin", "POST:DELETE", { isAdmin: true })).toBe(
-            true
+        expect(access.can("admin", "post:delete", { secret: "magic" })).toBe(
+            true,
         );
-        expect(access.can("admin", "POST:DELETE", { isAdmin: false })).toBe(
-            false
+        expect(access.can("admin", "post:delete", { secret: "wrong" })).toBe(
+            false,
         );
     });
 
-    it("should work with resource wildcards and conditions", () => {
-        const access = createAccess(config);
-        access.allow("user", "POST:*", (context) => context.isModerator);
+    it("should handle resource wildcards with conditions", () => {
+        access.allow("user", "post:*", (context: { count: number }) => {
+            return context.count < 5;
+        });
 
-        expect(access.can("user", "POST:DELETE", { isModerator: true })).toBe(
-            true
-        );
-        expect(access.can("user", "POST:UPDATE", { isModerator: false })).toBe(
-            false
-        );
+        expect(access.can("user", "post:create", { count: 3 })).toBe(true);
+        expect(access.can("user", "post:read", { count: 10 })).toBe(false);
+    });
+
+    it("should return false if no role is found", () => {
+        expect(access.can("non-existent" as any, "post:read")).toBe(false);
     });
 });

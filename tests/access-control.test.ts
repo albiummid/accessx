@@ -1,5 +1,5 @@
-import { Resource } from "../types";
-import { createAccess } from "./access-control";
+import { createAccess } from "../src/core/access-control";
+import { Resource } from "../src/types";
 
 describe("access-control", () => {
     const roles = ["admin", "user"] as const;

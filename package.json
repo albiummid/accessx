@@ -1,8 +1,8 @@
 {
   "name": "@lbstack/accessx",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "A role & resource based access control system with end to end type safety.",
-  "license": "ISC",
+  "license": "MIT",
   "author": "@lbstack",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,7 +10,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "llm.txt"
   ],
   "scripts": {
     "build": "tsc",
@@ -29,5 +30,15 @@
   },
   "peerDependencies": {
     "react": ">=16.8.0"
-  }
+  },
+  "keywords": [
+    "rbac",
+    "access-control",
+    "authorization",
+    "permissions",
+    "role-based",
+    "resource-based",
+    "typescript",
+    "react"
+  ]
 }
