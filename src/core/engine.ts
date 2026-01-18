@@ -78,6 +78,17 @@ export function createEngine<
             condition: condition,
         };
 
+        const updatePermissions = (list: Permission[]) => {
+            assignment.permissions.clear();
+            list.forEach((p) =>
+                assignment.permissions.set(
+                    p,
+                    assignment.condition || (() => true),
+                ),
+            );
+            notify();
+        };
+
         const updateFn = async (newKey?: string) => {
             let list: Permission[] = [];
             if (typeof perms === "function") {
@@ -89,13 +100,7 @@ export function createEngine<
                 list = Array.isArray(perms) ? perms : [perms];
             }
 
-            assignment.permissions.clear();
-            list.forEach((p) =>
-                assignment.permissions.set(
-                    p,
-                    assignment.condition || (() => true),
-                ),
-            );
+            updatePermissions(list);
 
             if (newKey !== undefined) {
                 assignment.lastInvalidateKey = newKey;
@@ -105,13 +110,31 @@ export function createEngine<
                         ? await assignment.invalidateKeyFetcher()
                         : assignment.invalidateKeyFetcher;
             }
-            notify();
         };
 
-        await updateFn();
+        // Immediate application for synchronous perms
+        if (typeof perms !== "function") {
+            const list = Array.isArray(perms) ? perms : [perms];
+            updatePermissions(list);
+
+            // Handle literal key synchronously
+            if (invalidateKey && typeof invalidateKey !== "function") {
+                assignment.lastInvalidateKey = invalidateKey;
+            }
+        }
 
         if (!roleAssignments.has(role)) roleAssignments.set(role, []);
         roleAssignments.get(role)!.push(assignment);
+
+        // Still call updateFn to handle potential async invalidateKeyFetcher
+        // and initial perms fetch if it's a function.
+        const initialUpdate = updateFn();
+        if (
+            typeof perms === "function" ||
+            typeof invalidateKey === "function"
+        ) {
+            await initialUpdate;
+        }
 
         if (interval && interval > 0) {
             assignment.timer = setInterval(async () => {
