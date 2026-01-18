@@ -133,32 +133,114 @@ const permissions = access.normalizePermissions(permissionsFromDb);
 
 Ensures only valid generated permissions are used.
 
-Login Response
 res.json({
   user,
   permissions: access.resolvePermissions(user.role),
 });
+```
 
-🎨 Frontend Usage (React)
+## 🔑 Assigning Permissions
 
-Frontend never uses roles.
-It only receives resolved permissions.
+There are two ways to assign permissions to roles: **Manual (Static)** and **Dynamic (Database-linked)**.
 
-useCan Hook
-const canEdit = access.useCan(
-  auth.permissions,
-  "BLOGS:UPDATE"
+### 1. Manual Assignment (Static)
+Best for hardcoded defaults or simple applications. This is the standard, **non-mandatory** approach.
+
+```typescript
+// Single permission
+access.allow("ADMIN", "USER:DELETE");
+
+// Multiple permissions
+access.allow("EDITOR", ["BLOGS:CREATE", "BLOGS:READ", "BLOGS:UPDATE"]);
+
+// With custom ABAC conditions
+access.allow("USER", "BLOG:UPDATE", (context) => {
+  return context.post.authorId === context.user.id;
+});
+```
+
+### 2. Dynamic Assignment (Database + Cache)
+Best for production apps where permissions are managed in a DB or Admin Panel. This is **optional** but provides powerful caching and auto-sync benefits.
+
+```typescript
+await access.assignPermissions("ADMIN", 
+  // 1. Fetcher: Returns the list of valid permissions from your DB
+  async () => {
+    const permissions = await db.query("SELECT key FROM permissions WHERE role = 'ADMIN'");
+    return permissions.map(p => p.key);
+  }, 
+  {
+    // OPTIONAL: A fast key-check (e.g., Redis version or DB timestamp)
+    // The engine only re-runs the Fetcher if this key changes.
+    invalidateKey: async () => await redis.get("perms:admin:version"),
+    
+    // OPTIONAL: Auto-check for updates every 60 seconds in the background
+    interval: 60000 
+  }
 );
+```
 
-<button disabled={!canEdit}>Edit</button>
+> [!TIP]
+> **Extra Benefits**: By using `invalidateKey`, you avoid hitting your database for every permission check. The engine keeps permissions in an in-memory cache and only refetches when your "version" key in Redis/DB changes.
 
-<Can /> Component
-<access.Can
-  permissions={auth.permissions}
-  permission="USER:DELETE"
->
-  <DeleteUserButton />
+## 🔄 Manual Refresh & Sync
+
+If you don't use the `interval` option, or if you need to force a sync after an admin update, use the `refresh` method.
+
+```typescript
+// Forces the engine to check invalidateKeys and re-fetch if they changed
+await access.refresh();
+
+// Refresh only a specific role
+await access.refresh("ADMIN");
+```
+
+## 🎨 Frontend Usage (React)
+
+Frontend components are reactive. When you call `access.refresh()` or when an `interval` triggers an update, all components using the hooks will automatically re-render.
+
+### 1. `useCan` Hook (Engine Bound)
+Automatically re-renders when the engine's permissions for the given role change.
+
+```tsx
+const canEdit = access.useCan("EDITOR", "BLOGS:UPDATE");
+```
+
+### 2. `usePermissions` Hook (Flexible Source)
+Manage permissions from any source (Static, Async, or Role). Provides `loading` state and a manual `refresh` trigger.
+
+```tsx
+const { permissions, loading, refresh } = access.usePermissions(async () => {
+  const res = await api.get("/my-permissions");
+  return res.data;
+});
+
+if (loading) return <Spinner />;
+
+return (
+  <div>
+    <button onClick={() => refresh()}>Sync Permissions</button>
+    <Can permissions={permissions} permission="BLOG:CREATE">
+      <CreatePost />
+    </Can>
+  </div>
+);
+```
+
+### 3. `<Can />` Component
+Works with both roles (engine-bound) and explicit permission arrays.
+
+```tsx
+// Role-based (Reactive)
+<access.Can role="ADMIN" permission="USER:DELETE">
+  <DeleteButton />
 </access.Can>
+
+// Permission-based
+<access.Can permissions={userPerms} permission="BLOGS:READ">
+  <PostList />
+</access.Can>
+```
 
 🧠 Type Safety & Autocomplete
 
@@ -184,9 +266,11 @@ access.permissionKeys
 
 Backend
 access.allow(role, permission)
+access.assignPermissions(role, perms, options) // Async: Supports fetchers & invalidation
 access.can(role, permission)
 access.resolvePermissions(role)
 access.normalizePermissions(raw)
+access.refresh(role?) // Async: Trigger key check and conditional refetch
 
 Frontend
 access.useCan(permissions, permission)

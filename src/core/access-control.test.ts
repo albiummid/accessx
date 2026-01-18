@@ -9,7 +9,11 @@ describe("access-control", () => {
         { name: "User", key: "user", description: "User accounts" },
     ];
 
-    const access = createAccess({ roles, actions, resources });
+    let access = createAccess({ roles, actions, resources });
+
+    beforeEach(() => {
+        access = createAccess({ roles, actions, resources });
+    });
 
     it("should initialize with correct roles and resources", () => {
         expect(access.roles).toEqual(roles);
@@ -23,32 +27,25 @@ describe("access-control", () => {
     });
 
     it("should correctly check permissions with 'can'", () => {
-        // Already allowed in previous test but let's be explicit
-        const adminPerms = ["*"] as const;
-        const userPerms = ["post:read"] as const;
+        access.allow("admin", "*");
+        access.allow("user", "post:read");
 
         // Admin can do anything
-        expect(access.hasPermission([...adminPerms], "post:delete")).toBe(true);
-        expect(access.hasPermission([...adminPerms], "user:create")).toBe(true);
+        expect(access.can("admin", "post:delete")).toBe(true);
+        expect(access.can("admin", "user:create")).toBe(true);
 
         // User can only read post
-        expect(access.hasPermission([...userPerms], "post:read")).toBe(true);
-        expect(access.hasPermission([...userPerms], "post:create")).toBe(false);
-        expect(access.hasPermission([...userPerms], "user:read")).toBe(false);
+        expect(access.can("user", "post:read")).toBe(true);
+        expect(access.can("user", "post:create")).toBe(false);
+        expect(access.can("user", "user:read")).toBe(false);
     });
 
     it("should handle wildcards", () => {
-        const postModeratorPerms = ["post:*"] as any[];
+        access.allow("user", "post:*");
 
-        expect(access.hasPermission(postModeratorPerms, "post:create")).toBe(
-            true
-        );
-        expect(access.hasPermission(postModeratorPerms, "post:delete")).toBe(
-            true
-        );
-        expect(access.hasPermission(postModeratorPerms, "user:read")).toBe(
-            false
-        );
+        expect(access.can("user", "post:create")).toBe(true);
+        expect(access.can("user", "post:delete")).toBe(true);
+        expect(access.can("user", "user:read")).toBe(false);
     });
 
     it("should normalize permissions", () => {

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "A role & resource based access control system with end to end type safety.",
   "license": "ISC",
-  "author": "",
+  "author": "@lbstack",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -15,7 +15,10 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "release:patch": "npm version patch && npm publish",
+    "release:minor": "npm version minor && npm publish",
+    "release:major": "npm version major && npm publish"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
