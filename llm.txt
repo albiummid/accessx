@@ -1,0 +1,94 @@
+# @lbstack/accessx
+
+A **TypeScript-first RBAC permission engine** with **automatic permission generation**, designed to be the **single source of truth** for Backend authorization, Frontend UI access control, Database permission storage, and Admin permission management.
+
+## ✨ Key Features
+- 🔐 Automatic permission generation
+- 🧠 Strong TypeScript inference & autocomplete
+- 🏗️ Single initialization – use everywhere (Backend & Frontend)
+- 🗄️ Database-friendly permission keys
+- 📦 Package & framework agnostic
+
+## 🧩 Core Concept
+Define Roles, Actions, and Resources. The engine generates permissions as `RESOURCE_KEY:ACTION`.
+Example: `BLOGS:CREATE`, `USER:DELETE`.
+
+## 📦 Installation
+```bash
+npm install @lbstack/accessx
+# or
+pnpm add @lbstack/accessx
+```
+
+## 🚀 Initialization
+```typescript
+import { createAccess } from "@lbstack/accessx";
+
+export const access = createAccess({
+  roles: ["ADMIN", "EDITOR", "CUSTOMER"] as const,
+  actions: ["CREATE", "READ", "UPDATE", "DELETE"] as const,
+  resources: [
+    { name: "Users", key: "USER", description: "User management" },
+    { name: "Blogs", key: "BLOGS", description: "Blog posts" },
+  ] as const,
+});
+```
+
+## 🔑 Assigning Permissions
+
+### 1. Manual Assignment (Static)
+```typescript
+access.allow("ADMIN", "USER:DELETE");
+access.allow("EDITOR", ["BLOGS:CREATE", "BLOGS:READ"]);
+```
+
+### 2. Dynamic Assignment (Database + Cache)
+```typescript
+await access.assignPermissions("ADMIN", 
+  async () => {
+    const permissions = await db.query("SELECT key FROM permissions WHERE role = 'ADMIN'");
+    return permissions.map(p => p.key);
+  }, 
+  {
+    invalidateKey: async () => await redis.get("perms:admin:version"),
+    interval: 60000 
+  }
+);
+```
+
+## 🔄 Manual Refresh & Sync
+```typescript
+await access.refresh(); // Refresh all
+await access.refresh("ADMIN"); // Refresh specific role
+```
+
+## 🎨 Frontend Usage (React)
+
+### useCan Hook
+```tsx
+const canEdit = access.useCan("EDITOR", "BLOGS:UPDATE");
+```
+
+### usePermissions Hook
+```tsx
+const { permissions, loading, refresh } = access.usePermissions(async () => {
+  const res = await api.get("/my-permissions");
+  return res.data;
+});
+```
+
+### <Can /> Component
+```tsx
+<access.Can role="ADMIN" permission="USER:DELETE">
+  <DeleteButton />
+</access.Can>
+```
+
+## 🧠 ABAC (Attribute-Based Access Control)
+```typescript
+access.allow("USER", "BLOG:UPDATE", (context) => {
+  return context.post.authorId === context.user.id;
+});
+
+const canEdit = access.can("USER", "BLOG:UPDATE", { user, post });
+```

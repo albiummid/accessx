@@ -1,5 +1,7 @@
 # @lbstack/accessx
 
+[📄 llm.txt (AI Friendly)](./llm.txt)
+
 A **TypeScript-first RBAC permission engine** with **automatic permission generation**, designed to be the **single source of truth** for:
 
 -   Backend authorization
