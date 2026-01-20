@@ -298,24 +298,45 @@ Scales to ABAC, multi-role, multi-tenant systems
 
 ## 🧠 ABAC (Attribute-Based Access Control)
 
-You can define dynamic permissions based on context (e.g., user ID, ownership checking).
+You can define dynamic permissions based on context.
 
-### 1. Define with Conditions
+### 1. Runtime Validation (Recommended) ✨
+
+Pass a validator function directly to `access.can`. This function is executed at runtime.
+
 ```typescript
-access.allow("USER", "BLOG:UPDATE", (context: { user: any; post: any }) => {
+const isAllowed = access.can("USER", "BLOG:UPDATE", () => {
+    // Your logic here
+    return post.authorId === user.id;
+});
+```
+
+This approach allows you to keep your permissions stored as pure data (strings) in your database while keeping the complex validation logic in your application code.
+
+### 2. Stored Conditions (Deprecated ⚠️)
+
+> [!WARNING]
+> Defining conditions during assignment is deprecated and may be removed in future versions. Please use Runtime Validation instead.
+
+Defining conditions during assignment:
+
+```typescript
+// DEPRECATED
+access.allow("USER", "BLOG:UPDATE", (context) => {
   return context.post.authorId === context.user.id;
 });
 ```
 
-### 2. Check with Context
-The `can` method accepts an optional context object as the third argument.
+Checking with context object:
 
 ```typescript
+// DEPRECATED
 const canEdit = access.can("USER", "BLOG:UPDATE", { user, post });
 ```
 
 ### 3. Frontend Usage
-React components also support `context`.
+
+React components support the new pattern via the `validator` prop (requires update to React components, currently supports context object):
 
 ```tsx
 <Can permissions={myPermissions} permission="BLOG:UPDATE" context={{ user, post }}>

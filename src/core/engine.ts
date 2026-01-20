@@ -220,12 +220,27 @@ export function createEngine<
         return getRolePermissions(role);
     }
 
+    /**
+     * Check if a role has the specified permission.
+     * @param role The role or roles to check.
+     * @param permission The permission to check.
+     * @param contextOrValidator
+     *  - (Recommended) A callback function `() => boolean` that returns true if allowed.
+     *  - (Deprecated) A context object to be passed to the stored condition.
+     */
     function can(
         role: Role | Role[],
         permission: Permission,
-        context?: any,
+        contextOrValidator?: any | (() => boolean),
     ): boolean {
         const roles = Array.isArray(role) ? role : [role];
+
+        // If a validator function is provided, it MUST return true.
+        if (typeof contextOrValidator === "function") {
+            if (!contextOrValidator()) {
+                return false;
+            }
+        }
 
         return roles.some((r) => {
             const assignments = roleAssignments.get(r);
@@ -234,25 +249,28 @@ export function createEngine<
             return assignments.some((assignment) => {
                 const permsMap = assignment.permissions;
 
+                // Helper to check a specific permission key in the map
+                const check = (key: Permission) => {
+                    if (permsMap.has(key)) {
+                        const storedCondition = permsMap.get(key)!;
+                        // pass the context (or function) to stored condition
+                        // If stored condition checks context, and we passed a function, it might fail/throw.
+                        // Ideally legacy stored conditions are used with legacy context objects.
+                        return storedCondition(contextOrValidator);
+                    }
+                    return false;
+                };
+
                 // 1. Global wildcard
-                if (permsMap.has("*")) {
-                    const condition = permsMap.get("*")!;
-                    if (condition(context)) return true;
-                }
+                if (check("*")) return true;
 
                 // 2. Direct match
-                if (permsMap.has(permission)) {
-                    const condition = permsMap.get(permission)!;
-                    if (condition(context)) return true;
-                }
+                if (check(permission)) return true;
 
                 // 3. Resource wildcard
                 const [resource] = permission.split(":");
                 const resourceWildcard = `${resource}:*` as Permission;
-                if (permsMap.has(resourceWildcard)) {
-                    const condition = permsMap.get(resourceWildcard)!;
-                    if (condition(context)) return true;
-                }
+                if (check(resourceWildcard)) return true;
 
                 return false;
             });
