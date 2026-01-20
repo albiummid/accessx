@@ -222,7 +222,7 @@ export function createEngine<
 
     /**
      * Check if a role has the specified permission.
-     * @param role The role or roles to check.
+     * @param role The role or roles to check (e.g. `user.role` from session).
      * @param permission The permission to check.
      * @param contextOrValidator
      *  - (Recommended) A callback function `() => boolean` that returns true if allowed.

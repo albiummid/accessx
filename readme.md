@@ -155,7 +155,7 @@ access.allow("ADMIN", "USER:DELETE");
 // Multiple permissions
 access.allow("EDITOR", ["BLOGS:CREATE", "BLOGS:READ", "BLOGS:UPDATE"]);
 
-// With custom ABAC conditions
+// With custom ABAC conditions (DEPRECATED: Use Runtime Validation instead)
 access.allow("USER", "BLOG:UPDATE", (context) => {
   return context.post.authorId === context.user.id;
 });
@@ -305,13 +305,13 @@ You can define dynamic permissions based on context.
 Pass a validator function directly to `access.can`. This function is executed at runtime.
 
 ```typescript
-const isAllowed = access.can("USER", "BLOG:UPDATE", () => {
+const isAllowed = access.can(user.role, "BLOG:UPDATE", () => {
     // Your logic here
     return post.authorId === user.id;
 });
 ```
 
-This approach allows you to keep your permissions stored as pure data (strings) in your database while keeping the complex validation logic in your application code.
+This approach allows you to keep your permissions stored as pure data (strings) in your database while keeping the complex validation logic in your application code. Use `user.role` dynamically from your session/token.
 
 ### 2. Stored Conditions (Deprecated ⚠️)
 
