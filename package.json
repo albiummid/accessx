@@ -1,6 +1,6 @@
 {
   "name": "@lbstack/accessx",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "A role & resource based access control system with end to end type safety.",
   "license": "MIT",
   "author": "@lbstack",
